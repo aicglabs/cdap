@@ -505,19 +505,25 @@ public abstract class DistributedProgramRunner implements ProgramRunner, Program
     Map<String, String> newSystemArgs = new HashMap<>(systemArgs.asMap());
     newSystemArgs.putAll(extraSystemArgs);
 
-    if (systemArgs.hasOption(ProgramOptionConstants.PLUGIN_DIR)) {
-      File localDir = new File(systemArgs.getOption(ProgramOptionConstants.PLUGIN_DIR));
-      File archiveFile = new File(tempDir, "artifacts.jar");
-      BundleJarUtil.createJar(localDir, archiveFile);
+    String artifactArchiveJarName = "artifacts_archive.jar";
+    String artifactDirName = "artifacts";
+    File archiveFile;
 
+    if (systemArgs.hasOption(ProgramOptionConstants.PLUGIN_ARCHIVE)) {
+      archiveFile = new File(artifactArchiveJarName);
       // Localize plugins to two files, one expanded into a directory, one not.
-      localizeResources.put("artifacts", new LocalizeResource(archiveFile, true));
-      localizeResources.put("artifacts_archive.jar", new LocalizeResource(archiveFile, false));
-
-      newSystemArgs.put(ProgramOptionConstants.PLUGIN_DIR, "artifacts");
-      newSystemArgs.put(ProgramOptionConstants.PLUGIN_ARCHIVE, "artifacts_archive.jar");
-
+      localizeResources.put(artifactDirName, new LocalizeResource(archiveFile, true));
+      localizeResources.put(artifactArchiveJarName, new LocalizeResource(archiveFile, false));
+    } else {
+      File localDir = new File(systemArgs.getOption(ProgramOptionConstants.PLUGIN_DIR));
+      archiveFile = new File(tempDir, artifactDirName + ".jar");
+      BundleJarUtil.createJar(localDir, archiveFile);
+      // Localize plugins to two files, one expanded into a directory, one not.
+      localizeResources.put(artifactDirName, new LocalizeResource(archiveFile, true));
+      localizeResources.put(artifactArchiveJarName, new LocalizeResource(archiveFile, false));
     }
+    newSystemArgs.put(ProgramOptionConstants.PLUGIN_DIR, artifactDirName);
+    newSystemArgs.put(ProgramOptionConstants.PLUGIN_ARCHIVE, artifactArchiveJarName);
     return new SimpleProgramOptions(options.getProgramId(), new BasicArguments(newSystemArgs),
                                     options.getUserArguments(), options.isDebug());
   }
