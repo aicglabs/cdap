@@ -50,6 +50,13 @@ class WindowManager {
   public onFocusHandler = () => {
     this.eventemitter.emit(WINDOW_ON_FOCUS);
   };
+
+  public isWindowActive = () => {
+    if (window.parent.Cypress) {
+      return true;
+    }
+    return ifvisible.now('active');
+  };
 }
 
 export default new WindowManager();
