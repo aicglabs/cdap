@@ -93,7 +93,10 @@ public class ConfiguratorTest {
     Location appJar = AppJarHelper.createDeploymentJar(locationFactory, AllProgramsApp.class);
     Id.Artifact artifactId = Id.Artifact.from(Id.Namespace.DEFAULT, AllProgramsApp.class.getSimpleName(), "1.0.0");
     CConfiguration cConf = CConfiguration.create();
-    ArtifactRepository baseArtifactRepo = new DefaultArtifactRepository(conf, null, null,
+    ArtifactRepository baseArtifactRepo = new DefaultArtifactRepository(conf,
+                                                                        null,
+                                                                        null,
+                                                                        null,
                                                                         new DummyProgramRunnerFactory(),
                                                                         new DefaultImpersonator(cConf, null));
     ArtifactRepository artifactRepo = new AuthorizationArtifactRepository(baseArtifactRepo,
@@ -133,7 +136,10 @@ public class ConfiguratorTest {
     Location appJar = AppJarHelper.createDeploymentJar(locationFactory, ConfigTestApp.class);
     Id.Artifact artifactId = Id.Artifact.from(Id.Namespace.DEFAULT, ConfigTestApp.class.getSimpleName(), "1.0.0");
     CConfiguration cConf = CConfiguration.create();
-    ArtifactRepository baseArtifactRepo = new DefaultArtifactRepository(conf, null, null,
+    ArtifactRepository baseArtifactRepo = new DefaultArtifactRepository(conf,
+                                                                        null,
+                                                                        null,
+                                                                        null,
                                                                         new DummyProgramRunnerFactory(),
                                                                         new DefaultImpersonator(cConf, null));
     ArtifactRepository artifactRepo = new AuthorizationArtifactRepository(baseArtifactRepo,
