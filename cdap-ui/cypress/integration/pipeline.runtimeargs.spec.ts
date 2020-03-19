@@ -272,11 +272,6 @@ describe('Deploying pipeline with temporary runtime arguments', () => {
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(2)} ${dataCy(RUNTIME_ARGS_KEY_SELECTOR)}`
     ).should('exist');
-    // cy.get(
-    //   `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(2)} ${dataCy(
-    //     RUNTIME_ARGS_KEY_SELECTOR
-    //   )} input`
-    // ).should('have.value', '');
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(2)} ${dataCy(
         RUNTIME_ARGS_KEY_SELECTOR
@@ -295,7 +290,7 @@ describe('Deploying pipeline with temporary runtime arguments', () => {
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(2)} ${dataCy(RUNTIME_ARGS_KEY_SELECTOR)}`
     ).should('not.exist');
 
-    cy.get('[datacy="run-deployed-pipeline-modal-btn"]').click();
+    cy.get(dataCy('run-deployed-pipeline-modal-btn')).click();
     cy.get(dataCy('Failed'), { timeout: PIPELINE_RUN_TIMEOUT }).should('exist');
 
     cy.get('.arrow-btn-container').click();
@@ -319,7 +314,7 @@ describe('Deploying pipeline with temporary runtime arguments', () => {
         RUNTIME_ARGS_VALUE_SELECTOR
       )}`
     ).type(SINK_PATH_VAL);
-    cy.get('[datacy="run-deployed-pipeline-modal-btn"]').click();
+    cy.get(dataCy('run-deployed-pipeline-modal-btn')).click();
     cy.get(dataCy('Succeeded'), { timeout: PIPELINE_RUN_TIMEOUT }).should('exist');
   });
 });
@@ -409,7 +404,7 @@ describe('Deploying pipeline with saved runtime arguments', () => {
         RUNTIME_ARGS_VALUE_SELECTOR
       )}`
     ).type(SINK_PATH_VAL);
-    cy.get('[datacy="run-deployed-pipeline-modal-btn"]').click();
+    cy.get(dataCy('run-deployed-pipeline-modal-btn')).click();
     cy.get('.arrow-btn-container').click();
     cy.get(dataCy('Succeeded'), { timeout: PIPELINE_RUN_TIMEOUT }).should('exist');
   });

@@ -29,7 +29,7 @@ function loginIfRequired() {
     Cypress.Cookies.defaults({
       whitelist: ['CDAP_Auth_Token', 'CDAP_Auth_User'],
     });
-    return;
+    return cy.wrap({});
   }
   return cy
     .request({
