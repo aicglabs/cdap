@@ -223,6 +223,7 @@ describe('Deploying pipeline with temporary runtime arguments', () => {
       expect(subject.length).to.be.eq(1);
     });
   });
+
   it('and running it should succeed.', () => {
     cy.get('.pipeline-name').click();
     cy.get('#pipeline-name-input')
@@ -231,7 +232,7 @@ describe('Deploying pipeline with temporary runtime arguments', () => {
       .type('{enter}');
     cy.get(dataCy('deploy-pipeline-btn')).click();
     cy.get(dataCy('Deployed')).should('exist');
-    cy.get(dataCy('pipeline-run-btn')).click();
+    cy.get('.arrow-btn-container').click();
     cy.get(dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)).should('exist');
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(0)} ${dataCy(
@@ -243,11 +244,6 @@ describe('Deploying pipeline with temporary runtime arguments', () => {
         RUNTIME_ARGS_KEY_SELECTOR
       )} input`
     ).should('have.value', 'source_path');
-    cy.get(
-      `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(0)} ${dataCy(
-        RUNTIME_ARGS_VALUE_SELECTOR
-      )} input`
-    ).should('have.value', '');
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(0)} ${dataCy(
         RUNTIME_ARGS_VALUE_SELECTOR
@@ -267,11 +263,6 @@ describe('Deploying pipeline with temporary runtime arguments', () => {
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(1)} ${dataCy(
         RUNTIME_ARGS_VALUE_SELECTOR
-      )} input`
-    ).should('have.value', '');
-    cy.get(
-      `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(1)} ${dataCy(
-        RUNTIME_ARGS_VALUE_SELECTOR
       )}`
     ).type('random value2');
     cy.get(
@@ -281,11 +272,11 @@ describe('Deploying pipeline with temporary runtime arguments', () => {
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(2)} ${dataCy(RUNTIME_ARGS_KEY_SELECTOR)}`
     ).should('exist');
-    cy.get(
-      `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(2)} ${dataCy(
-        RUNTIME_ARGS_KEY_SELECTOR
-      )} input`
-    ).should('have.value', '');
+    // cy.get(
+    //   `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(2)} ${dataCy(
+    //     RUNTIME_ARGS_KEY_SELECTOR
+    //   )} input`
+    // ).should('have.value', '');
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(2)} ${dataCy(
         RUNTIME_ARGS_KEY_SELECTOR
@@ -307,7 +298,7 @@ describe('Deploying pipeline with temporary runtime arguments', () => {
     cy.get('[datacy="run-deployed-pipeline-modal-btn"]').click();
     cy.get(dataCy('Failed'), { timeout: PIPELINE_RUN_TIMEOUT }).should('exist');
 
-    cy.get(dataCy('pipeline-run-btn')).click();
+    cy.get('.arrow-btn-container').click();
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(0)} ${dataCy(
         RUNTIME_ARGS_VALUE_SELECTOR
@@ -375,7 +366,7 @@ describe('Deploying pipeline with saved runtime arguments', () => {
       .type('{enter}');
     cy.get(dataCy('deploy-pipeline-btn')).click();
     cy.get(dataCy('Deployed')).should('exist');
-    cy.get(dataCy('pipeline-run-btn')).click();
+    cy.get('.arrow-btn-container').click();
     cy.get(dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)).should('exist');
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(0)} ${dataCy(
@@ -391,7 +382,7 @@ describe('Deploying pipeline with saved runtime arguments', () => {
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(0)} ${dataCy(
         RUNTIME_ARGS_VALUE_SELECTOR
       )} input`
-    ).should('have.value', '');
+    ).clear();
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(0)} ${dataCy(
         RUNTIME_ARGS_VALUE_SELECTOR
@@ -412,14 +403,14 @@ describe('Deploying pipeline with saved runtime arguments', () => {
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(1)} ${dataCy(
         RUNTIME_ARGS_VALUE_SELECTOR
       )} input`
-    ).should('have.value', '');
+    ).clear();
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(1)} ${dataCy(
         RUNTIME_ARGS_VALUE_SELECTOR
       )}`
     ).type(SINK_PATH_VAL);
     cy.get('[datacy="run-deployed-pipeline-modal-btn"]').click();
-    cy.get(dataCy('pipeline-run-btn')).click();
+    cy.get('.arrow-btn-container').click();
     cy.get(dataCy('Succeeded'), { timeout: PIPELINE_RUN_TIMEOUT }).should('exist');
   });
 });
