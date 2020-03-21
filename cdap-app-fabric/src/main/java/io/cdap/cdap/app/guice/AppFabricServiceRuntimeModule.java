@@ -79,6 +79,8 @@ import io.cdap.cdap.internal.app.runtime.artifact.ArtifactStore;
 import io.cdap.cdap.internal.app.runtime.artifact.AuthorizationArtifactRepository;
 import io.cdap.cdap.internal.app.runtime.artifact.DefaultArtifactRepository;
 import io.cdap.cdap.internal.app.runtime.artifact.LocalArtifactRepositoryReader;
+import io.cdap.cdap.internal.app.runtime.artifact.LocalPluginFinder;
+import io.cdap.cdap.internal.app.runtime.artifact.PluginFinder;
 import io.cdap.cdap.internal.app.runtime.schedule.DistributedTimeSchedulerService;
 import io.cdap.cdap.internal.app.runtime.schedule.ExecutorThreadPool;
 import io.cdap.cdap.internal.app.runtime.schedule.LocalTimeSchedulerService;
@@ -90,6 +92,7 @@ import io.cdap.cdap.internal.app.runtime.workflow.WorkflowStateWriter;
 import io.cdap.cdap.internal.app.services.LocalRunRecordCorrectorService;
 import io.cdap.cdap.internal.app.services.NoopRunRecordCorrectorService;
 import io.cdap.cdap.internal.app.services.ProgramLifecycleService;
+import io.cdap.cdap.internal.app.services.PropertiesResolver;
 import io.cdap.cdap.internal.app.services.RunRecordCorrectorService;
 import io.cdap.cdap.internal.app.services.ScheduledRunRecordCorrectorService;
 import io.cdap.cdap.internal.app.store.DefaultStore;
@@ -98,7 +101,10 @@ import io.cdap.cdap.internal.pipeline.SynchronousPipelineFactory;
 import io.cdap.cdap.internal.profile.ProfileService;
 import io.cdap.cdap.internal.provision.ProvisionerModule;
 import io.cdap.cdap.internal.sysapp.SystemAppManagementService;
+import io.cdap.cdap.logging.gateway.handlers.LocalProgramRunRecordFetcher;
+import io.cdap.cdap.metadata.LocalPreferencesFetcherInternal;
 import io.cdap.cdap.metadata.MetadataServiceModule;
+import io.cdap.cdap.metadata.PreferencesFetcher;
 import io.cdap.cdap.pipeline.PipelineFactory;
 import io.cdap.cdap.scheduler.CoreSchedulerService;
 import io.cdap.cdap.scheduler.Scheduler;
@@ -274,6 +280,7 @@ public final class AppFabricServiceRuntimeModule extends RuntimeModule {
     protected void configure() {
       bind(PipelineFactory.class).to(SynchronousPipelineFactory.class);
 
+      bind(PluginFinder.class).to(LocalPluginFinder.class);
       install(
         new FactoryModuleBuilder()
           .implement(new TypeLiteral<Manager<AppDeploymentInfo, ApplicationWithPrograms>>() {
@@ -314,6 +321,8 @@ public final class AppFabricServiceRuntimeModule extends RuntimeModule {
           expose(ArtifactRepository.class);
         }
       });
+      bind(PreferencesFetcher.class).annotatedWith(Names.named(PropertiesResolver.PREFERENCES_FETCHER))
+        .to(LocalPreferencesFetcherInternal.class).in(Scopes.SINGLETON);
       bind(ProfileService.class).in(Scopes.SINGLETON);
 
       Multibinder<HttpHandler> handlerBinder = Multibinder.newSetBinder(

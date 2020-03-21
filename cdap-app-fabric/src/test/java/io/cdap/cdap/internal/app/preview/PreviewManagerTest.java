@@ -30,6 +30,7 @@ import io.cdap.cdap.api.artifact.ArtifactSummary;
 import io.cdap.cdap.app.guice.AppFabricServiceRuntimeModule;
 import io.cdap.cdap.app.guice.AuthorizationModule;
 import io.cdap.cdap.app.guice.ProgramRunnerRuntimeModule;
+import io.cdap.cdap.app.preview.ArtifactRepositoryReaderFactory;
 import io.cdap.cdap.app.preview.DefaultPreviewRunnerModule;
 import io.cdap.cdap.app.preview.PreviewHttpModule;
 import io.cdap.cdap.app.preview.PreviewManager;
@@ -52,7 +53,6 @@ import io.cdap.cdap.data.runtime.DataSetsModules;
 import io.cdap.cdap.data.runtime.TransactionExecutorModule;
 import io.cdap.cdap.explore.guice.ExploreClientModule;
 import io.cdap.cdap.internal.app.runtime.ProgramRuntimeProviderLoader;
-import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepository;
 import io.cdap.cdap.internal.app.runtime.artifact.ArtifactStore;
 import io.cdap.cdap.internal.app.store.RunRecordDetail;
 import io.cdap.cdap.internal.provision.ProvisionerModule;
@@ -204,13 +204,14 @@ public class PreviewManagerTest {
   private static final class MockPreviewRunnerModule extends DefaultPreviewRunnerModule {
 
     @Inject
-    MockPreviewRunnerModule(ArtifactRepository artifactRepository, ArtifactStore artifactStore,
+    MockPreviewRunnerModule(ArtifactRepositoryReaderProvider readerProvider, ArtifactStore artifactStore,
                             AuthorizerInstantiator authorizerInstantiator, AuthorizationEnforcer authorizationEnforcer,
                             PrivilegesManager privilegesManager, PreferencesService preferencesService,
                             ProgramRuntimeProviderLoader programRuntimeProviderLoader,
+                            PluginFinderProvider pluginFinderProvider,
                             @Assisted PreviewRequest previewRequest) {
-      super(artifactRepository, artifactStore, authorizerInstantiator, authorizationEnforcer,
-            privilegesManager, preferencesService, programRuntimeProviderLoader, previewRequest);
+      super(readerProvider, artifactStore, authorizerInstantiator, authorizationEnforcer,
+            privilegesManager, preferencesService, programRuntimeProviderLoader, pluginFinderProvider, previewRequest);
     }
 
     @Override

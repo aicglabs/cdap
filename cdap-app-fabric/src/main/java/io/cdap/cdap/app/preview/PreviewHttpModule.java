@@ -17,10 +17,15 @@
 package io.cdap.cdap.app.preview;
 
 import com.google.inject.Binder;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 import com.google.inject.PrivateModule;
+import com.google.inject.Provider;
 import com.google.inject.Scopes;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import com.google.inject.name.Names;
+import io.cdap.cdap.common.conf.CConfiguration;
+import io.cdap.cdap.common.conf.Constants;
 import io.cdap.cdap.data.runtime.DataSetsModules;
 import io.cdap.cdap.data2.datafabric.dataset.RemoteDatasetFramework;
 import io.cdap.cdap.data2.dataset2.DatasetDefinitionRegistryFactory;
@@ -28,6 +33,11 @@ import io.cdap.cdap.data2.dataset2.DatasetFramework;
 import io.cdap.cdap.data2.dataset2.DefaultDatasetDefinitionRegistryFactory;
 import io.cdap.cdap.gateway.handlers.preview.PreviewHttpHandler;
 import io.cdap.cdap.internal.app.preview.DefaultPreviewManager;
+import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepository;
+import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepositoryReader;
+import io.cdap.cdap.internal.app.runtime.artifact.DefaultArtifactRepository;
+import io.cdap.cdap.internal.app.runtime.artifact.LocalArtifactRepositoryReader;
+import io.cdap.cdap.internal.app.runtime.artifact.RemoteArtifactRepositoryReader;
 
 /**
  * Provides bindings required create the {@link PreviewHttpHandler}.
@@ -45,6 +55,9 @@ public class PreviewHttpModule extends PrivateModule {
     bindPreviewRunnerFactory(binder());
     bind(PreviewManager.class).to(DefaultPreviewManager.class).in(Scopes.SINGLETON);
     expose(PreviewManager.class);
+//    install(new FactoryModuleBuilder()
+//     .implement(ArtifactRepositoryReader.class, ReadArtifactRepositoryReaderFactory.class)
+//     .build(ArtifactRepositoryReader.class));
   }
 
   /**

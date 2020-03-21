@@ -17,16 +17,22 @@
 package io.cdap.cdap.internal.app.services.http.handlers;
 
 import io.cdap.cdap.api.artifact.ArtifactInfo;
+import io.cdap.cdap.api.artifact.ArtifactRange;
 import io.cdap.cdap.api.artifact.ArtifactScope;
+import io.cdap.cdap.api.artifact.ArtifactVersion;
+import io.cdap.cdap.api.artifact.ArtifactVersionRange;
 import io.cdap.cdap.common.id.Id;
 import io.cdap.cdap.internal.app.runtime.artifact.ArtifactDetail;
+import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepository;
 import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepositoryReader;
 import io.cdap.cdap.internal.app.runtime.artifact.RemoteArtifactRepositoryReader;
+import io.cdap.cdap.proto.artifact.ArtifactSortOrder;
 import io.cdap.cdap.proto.id.ArtifactId;
 import io.cdap.cdap.proto.id.NamespaceId;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ArtifactHttpHandlerInternalTest extends ArtifactHttpHandlerTestBase {
@@ -96,10 +102,10 @@ public class ArtifactHttpHandlerInternalTest extends ArtifactHttpHandlerTestBase
   }
 
   /**
-   * Test {@link RemoteArtifactRepositoryReader}
+   * Test {@link RemoteArtifactRepositoryReader#getArtifact}
    */
   @Test
-  public void testRemoteArtifactRepositoryReader() throws Exception {
+  public void testRemoteArtifactRepositoryReaderGetArtifact() throws Exception {
     // Add a system artifact
     String systemArtfiactName = "sysApp";
     String systemArtifactVeresion = "1.0.0";
@@ -111,5 +117,64 @@ public class ArtifactHttpHandlerInternalTest extends ArtifactHttpHandlerTestBase
     Assert.assertNotNull(detail);
     ArtifactDetail expectedDetail = getArtifactDetailFromRepository(Id.Artifact.fromEntityId(systemArtifactId));
     Assert.assertTrue(detail.equals(expectedDetail));
+  }
+
+  /**
+   * Test {@link RemoteArtifactRepositoryReader#getArtifactDetails}
+   */
+  @Test
+  public void testRemoteArtifactRepositoryReaderGetArtifactDetails() throws Exception {
+    // Add a system artifact
+    String systemArtfiactName = "sysApp";
+    final int numVersions = 10;
+    List<ArtifactId> artifactIds = new ArrayList<>();
+    for (int i = 1; i <= numVersions; i++) {
+      String version = String.format("%d.0.0", i);
+      ArtifactId systemArtifactId = NamespaceId.SYSTEM.artifact(systemArtfiactName, version);
+      addAppAsSystemArtifacts(systemArtifactId);
+      artifactIds.add(systemArtifactId);
+    }
+
+    ArtifactRepositoryReader remoteReader = getInjector().getInstance(RemoteArtifactRepositoryReader.class);
+    ArtifactRange range = new ArtifactRange(NamespaceId.SYSTEM.getNamespace(),
+                                            systemArtfiactName,
+                                            new ArtifactVersion("1.0.0"),
+                                            new ArtifactVersion(String.format("%d.0.0", numVersions)));
+
+    List<ArtifactDetail> details = null;
+    ArtifactId systemArtifactId = null;
+    ArtifactDetail expectedDetail = null;
+    int numLimits = 0;
+
+    numLimits = 1;
+    details = remoteReader.getArtifactDetails(range, numLimits, ArtifactSortOrder.DESC);
+    Assert.assertEquals(numLimits, details.size());
+    systemArtifactId = NamespaceId.SYSTEM.artifact(systemArtfiactName, String.format("%d.0.0", numVersions));
+    expectedDetail = getArtifactDetailFromRepository(Id.Artifact.fromEntityId(systemArtifactId));
+    Assert.assertTrue(details.get(numLimits - 1).equals(expectedDetail));
+
+    numLimits = 3;
+    details = remoteReader.getArtifactDetails(range, numLimits, ArtifactSortOrder.DESC);
+    Assert.assertEquals(numLimits, details.size());
+    for (int i = 0; i < numLimits; i++) {
+      systemArtifactId = NamespaceId.SYSTEM.artifact(systemArtfiactName, String.format("%d.0.0", numVersions - i));
+      expectedDetail = getArtifactDetailFromRepository(Id.Artifact.fromEntityId(systemArtifactId));
+      Assert.assertTrue(details.get(i).equals(expectedDetail));
+    }
+
+    details = remoteReader.getArtifactDetails(range, 1, ArtifactSortOrder.ASC);
+    Assert.assertEquals(1, details.size());
+    systemArtifactId = NamespaceId.SYSTEM.artifact(systemArtfiactName, "1.0.0");
+    expectedDetail = getArtifactDetailFromRepository(Id.Artifact.fromEntityId(systemArtifactId));
+    Assert.assertTrue(details.get(0).equals(expectedDetail));
+
+    numLimits = 5;
+    details = remoteReader.getArtifactDetails(range, numLimits, ArtifactSortOrder.ASC);
+    Assert.assertEquals(numLimits, details.size());
+    for (int i = 0; i < numLimits; i++) {
+      systemArtifactId = NamespaceId.SYSTEM.artifact(systemArtfiactName, String.format("%d.0.0", i + 1));
+      expectedDetail = getArtifactDetailFromRepository(Id.Artifact.fromEntityId(systemArtifactId));
+      Assert.assertTrue(details.get(i).equals(expectedDetail));
+    }
   }
 }

@@ -60,12 +60,18 @@ import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepository;
 import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepositoryReader;
 import io.cdap.cdap.internal.app.runtime.artifact.DefaultArtifactRepository;
 import io.cdap.cdap.internal.app.runtime.artifact.LocalArtifactRepositoryReader;
+import io.cdap.cdap.internal.app.runtime.artifact.LocalPluginFinder;
+import io.cdap.cdap.internal.app.runtime.artifact.PluginFinder;
+import io.cdap.cdap.internal.app.runtime.artifact.RemoteArtifactRepositoryReader;
+import io.cdap.cdap.internal.app.services.PropertiesResolver;
 import io.cdap.cdap.internal.provision.ProvisionerModule;
 import io.cdap.cdap.logging.guice.LocalLogAppenderModule;
 import io.cdap.cdap.logging.read.FileLogReader;
 import io.cdap.cdap.logging.read.LogReader;
 import io.cdap.cdap.messaging.guice.MessagingServerRuntimeModule;
 import io.cdap.cdap.metadata.MetadataReaderWriterModules;
+import io.cdap.cdap.metadata.PreferencesFetcher;
+import io.cdap.cdap.metadata.RemotePreferencesFetcherInternal;
 import io.cdap.cdap.metrics.guice.MetricsClientRuntimeModule;
 import io.cdap.cdap.proto.ProgramType;
 import io.cdap.cdap.proto.artifact.AppRequest;
@@ -80,6 +86,8 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.tephra.TransactionSystemClient;
 import org.apache.twill.discovery.DiscoveryService;
+import org.apache.twill.discovery.DiscoveryServiceClient;
+import org.apache.twill.filesystem.LocationFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,30 +118,39 @@ public class DefaultPreviewManager extends AbstractIdleService implements Previe
   private final SConfiguration sConf;
   private final int maxPreviews;
   private final DiscoveryService discoveryService;
+  private final DiscoveryServiceClient discoveryServiceClient;
   private final DatasetFramework datasetFramework;
   private final SecureStore secureStore;
   private final TransactionSystemClient transactionSystemClient;
   private final ConcurrentMap<ApplicationId, Injector> appInjectors;
   private final Path previewDataDir;
   private final PreviewRunnerModuleFactory previewRunnerModuleFactory;
+  private final LocationFactory locationFactory;
+  private final RemotePreferencesFetcherInternal remotePreferencesFetcherInternal;
 
   @Inject
   DefaultPreviewManager(CConfiguration cConf, Configuration hConf,
                         SConfiguration sConf, DiscoveryService discoveryService,
+                        DiscoveryServiceClient discoveryServiceClient,
                         @Named(DataSetsModules.BASE_DATASET_FRAMEWORK) DatasetFramework datasetFramework,
                         SecureStore secureStore, TransactionSystemClient transactionSystemClient,
-                        PreviewRunnerModuleFactory previewRunnerModuleFactory) {
+                        PreviewRunnerModuleFactory previewRunnerModuleFactory,
+                        LocationFactory locationFactory,
+                        RemotePreferencesFetcherInternal remotePreferencesFetcherInternal) {
     this.cConf = cConf;
     this.hConf = hConf;
     this.sConf = sConf;
     this.datasetFramework = datasetFramework;
     this.discoveryService = discoveryService;
+    this.discoveryServiceClient = discoveryServiceClient;
     this.secureStore = secureStore;
     this.transactionSystemClient = transactionSystemClient;
     this.previewDataDir = Paths.get(cConf.get(Constants.CFG_LOCAL_DATA_DIR), "preview").toAbsolutePath();
     this.appInjectors = new ConcurrentHashMap<>();
     this.maxPreviews = cConf.getInt(Constants.Preview.PREVIEW_CACHE_SIZE, 10);
     this.previewRunnerModuleFactory = previewRunnerModuleFactory;
+    this.locationFactory = locationFactory;
+    this.remotePreferencesFetcherInternal = remotePreferencesFetcherInternal;
   }
 
   @Override
@@ -351,23 +368,28 @@ public class DefaultPreviewManager extends AbstractIdleService implements Previe
       new PrivateModule() {
         @Override
         protected void configure() {
-          // ArtifactRepositoryReader is required by DefaultArtifactRepository.
-          // Keep ArtifactRepositoryReader private to minimize the scope of the binding visibility.
-          bind(ArtifactRepositoryReader.class).to(LocalArtifactRepositoryReader.class).in(Scopes.SINGLETON);
-          bind(ArtifactRepository.class)
-            .annotatedWith(Names.named(AppFabricServiceRuntimeModule.NOAUTH_ARTIFACT_REPO))
-            .to(DefaultArtifactRepository.class)
-            .in(Scopes.SINGLETON);
-          expose(ArtifactRepository.class)
-            .annotatedWith(Names.named(AppFabricServiceRuntimeModule.NOAUTH_ARTIFACT_REPO));
-
-          bind(LogReader.class).to(FileLogReader.class).in(Scopes.SINGLETON);
-          expose(LogReader.class);
+//          bind(LocationFactory.class).annotatedWith(
+//            Names.named(RemoteArtifactRepositoryReader.LOCATION_FACTORY)).toInstance(locationFactory);
+//          bind(DiscoveryServiceClient.class).annotatedWith(
+//            Names.named(RemoteArtifactRepositoryReader.DISCOVERY_SERVICE_CLIENT)).toInstance(discoveryServiceClient);
+//          bind(ArtifactRepositoryReader.class).to(RemoteArtifactRepositoryReader.class).in(Scopes.SINGLETON);
+//
+//          bind(ArtifactRepository.class)
+//            .annotatedWith(Names.named(AppFabricServiceRuntimeModule.NOAUTH_ARTIFACT_REPO))
+//            .to(DefaultArtifactRepository.class)
+//            .in(Scopes.SINGLETON);
+//          expose(ArtifactRepository.class)
+//            .annotatedWith(Names.named(AppFabricServiceRuntimeModule.NOAUTH_ARTIFACT_REPO));
+//          bind(ArtifactRepository.class)
+//            .to(AuthorizationArtifactRepository.class)
+//            .in(Scopes.SINGLETON);
+//          expose(ArtifactRepository.class);
         }
       },
       new AbstractModule() {
         @Override
         protected void configure() {
+          bind(LogReader.class).to(FileLogReader.class).in(Scopes.SINGLETON);
         }
         @Provides
         @Named(Constants.Service.MASTER_SERVICES_BIND_ADDRESS)
@@ -376,7 +398,15 @@ public class DefaultPreviewManager extends AbstractIdleService implements Previe
           String address = cConf.get(Constants.Preview.ADDRESS);
           return Networks.resolve(address, new InetSocketAddress("localhost", 0).getAddress());
         }
-      });
+      },
+      new PrivateModule() {
+        @Override
+        protected void configure() {
+          bind(PreferencesFetcher.class).annotatedWith(Names.named(PropertiesResolver.PREFERENCES_FETCHER)).toInstance(remotePreferencesFetcherInternal);
+          expose(PreferencesFetcher.class).annotatedWith(Names.named(PropertiesResolver.PREFERENCES_FETCHER));
+        }
+      }
+    );
   }
 
   @VisibleForTesting

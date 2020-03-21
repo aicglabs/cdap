@@ -19,15 +19,21 @@ package io.cdap.cdap.app.preview;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
+import com.google.inject.Injector;
 import com.google.inject.PrivateModule;
+import com.google.inject.Provider;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import com.google.inject.name.Names;
 import io.cdap.cdap.app.deploy.Manager;
 import io.cdap.cdap.app.deploy.ManagerFactory;
+import io.cdap.cdap.app.guice.AppFabricServiceRuntimeModule;
 import io.cdap.cdap.app.store.Store;
 import io.cdap.cdap.app.store.preview.PreviewStore;
+import io.cdap.cdap.common.conf.CConfiguration;
+import io.cdap.cdap.common.conf.Constants;
 import io.cdap.cdap.common.namespace.NamespaceAdmin;
 import io.cdap.cdap.common.namespace.NamespaceQueryAdmin;
 import io.cdap.cdap.config.PreferencesService;
@@ -45,7 +51,14 @@ import io.cdap.cdap.internal.app.preview.DefaultDataTracerFactory;
 import io.cdap.cdap.internal.app.preview.DefaultPreviewRunner;
 import io.cdap.cdap.internal.app.runtime.ProgramRuntimeProviderLoader;
 import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepository;
+import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepositoryReader;
 import io.cdap.cdap.internal.app.runtime.artifact.ArtifactStore;
+import io.cdap.cdap.internal.app.runtime.artifact.DefaultArtifactRepository;
+import io.cdap.cdap.internal.app.runtime.artifact.LocalArtifactRepositoryReader;
+import io.cdap.cdap.internal.app.runtime.artifact.LocalPluginFinder;
+import io.cdap.cdap.internal.app.runtime.artifact.PluginFinder;
+import io.cdap.cdap.internal.app.runtime.artifact.RemoteArtifactRepositoryReader;
+import io.cdap.cdap.internal.app.runtime.artifact.RemotePluginFinder;
 import io.cdap.cdap.internal.app.runtime.workflow.BasicWorkflowStateWriter;
 import io.cdap.cdap.internal.app.runtime.workflow.WorkflowStateWriter;
 import io.cdap.cdap.internal.app.store.DefaultStore;
@@ -67,12 +80,13 @@ import io.cdap.cdap.security.spi.authorization.AuthorizationEnforcer;
 import io.cdap.cdap.security.spi.authorization.PrivilegesManager;
 import io.cdap.cdap.store.DefaultOwnerStore;
 
+import static io.cdap.cdap.app.guice.AppFabricServiceRuntimeModule.NOAUTH_ARTIFACT_REPO;
+
 /**
  * Provides bindings required to create injector for running preview.
  */
 public class DefaultPreviewRunnerModule extends PrivateModule implements PreviewRunnerModule {
 
-  private final ArtifactRepository artifactRepository;
   private final ArtifactStore artifactStore;
   private final AuthorizerInstantiator authorizerInstantiator;
   private final AuthorizationEnforcer authorizationEnforcer;
@@ -80,16 +94,19 @@ public class DefaultPreviewRunnerModule extends PrivateModule implements Preview
   private final PreferencesService preferencesService;
   private final ProgramRuntimeProviderLoader programRuntimeProviderLoader;
   private final PreviewRequest previewRequest;
+  private final ArtifactRepositoryReaderProvider readerProvider;
+  private final PluginFinderProvider pluginFinderProvider;
 
   @VisibleForTesting
   @Inject
-  public DefaultPreviewRunnerModule(ArtifactRepository artifactRepository, ArtifactStore artifactStore,
+  public DefaultPreviewRunnerModule(ArtifactRepositoryReaderProvider readerProvider, ArtifactStore artifactStore,
                                     AuthorizerInstantiator authorizerInstantiator,
                                     AuthorizationEnforcer authorizationEnforcer,
                                     PrivilegesManager privilegesManager, PreferencesService preferencesService,
                                     ProgramRuntimeProviderLoader programRuntimeProviderLoader,
+                                    PluginFinderProvider pluginFinderProvider,
                                     @Assisted PreviewRequest previewRequest) {
-    this.artifactRepository = artifactRepository;
+    this.readerProvider = readerProvider;
     this.artifactStore = artifactStore;
     this.authorizerInstantiator = authorizerInstantiator;
     this.authorizationEnforcer = authorizationEnforcer;
@@ -97,12 +114,19 @@ public class DefaultPreviewRunnerModule extends PrivateModule implements Preview
     this.preferencesService = preferencesService;
     this.programRuntimeProviderLoader = programRuntimeProviderLoader;
     this.previewRequest = previewRequest;
+    this.pluginFinderProvider = pluginFinderProvider;
   }
 
   @Override
   protected void configure() {
-    bind(ArtifactRepository.class).toInstance(artifactRepository);
+    bind(ArtifactRepositoryReader.class).toProvider(readerProvider);
+    bind(ArtifactRepository.class).to(DefaultArtifactRepository.class);
     expose(ArtifactRepository.class);
+    bind(ArtifactRepository.class)
+            .annotatedWith(Names.named(NOAUTH_ARTIFACT_REPO))
+            .to(DefaultArtifactRepository.class)
+            .in(Scopes.SINGLETON);
+    expose(ArtifactRepository.class).annotatedWith(Names.named(NOAUTH_ARTIFACT_REPO));
     bind(ArtifactStore.class).toInstance(artifactStore);
     expose(ArtifactStore.class);
     bind(AuthorizerInstantiator.class).toInstance(authorizerInstantiator);
@@ -162,6 +186,9 @@ public class DefaultPreviewRunnerModule extends PrivateModule implements Preview
     expose(OwnerAdmin.class);
 
     bind(PreviewRequest.class).toInstance(previewRequest);
+
+    bind(PluginFinder.class).toProvider(pluginFinderProvider);
+    expose(PluginFinder.class);
   }
 
   /**
@@ -170,4 +197,76 @@ public class DefaultPreviewRunnerModule extends PrivateModule implements Preview
   protected void bindPreviewRunner(Binder binder) {
     binder.bind(PreviewRunner.class).to(DefaultPreviewRunner.class).in(Scopes.SINGLETON);
   }
+
+  /**
+   * Provider for {@link ArtifactRepositoryReader}.
+   * Use {@link LocalArtifactRepositoryReader} if storage implication is {@link Constants.Dataset#DATA_STORAGE_SQL}.
+   * Use {@link RemoteArtifactRepositoryReader} if storage implication is {@link Constants.Dataset#DATA_STORAGE_NOSQL}.
+   */
+  protected static final class ArtifactRepositoryReaderProvider implements Provider<ArtifactRepositoryReader> {
+
+    private final CConfiguration cConf;
+    private final Injector injector;
+
+    @Inject
+    ArtifactRepositoryReaderProvider(CConfiguration cConf, Injector injector) {
+      this.cConf = cConf;
+      this.injector = injector;
+    }
+
+    @Override
+    public ArtifactRepositoryReader get() {
+      String storageImpl = cConf.get(Constants.Dataset.DATA_STORAGE_IMPLEMENTATION);
+      if (storageImpl == null) {
+        throw new IllegalStateException("No storage implementation is specified in the configuration file");
+      }
+
+      storageImpl = storageImpl.toLowerCase();
+      if (storageImpl.equals(Constants.Dataset.DATA_STORAGE_NOSQL)) {
+        return injector.getInstance(RemoteArtifactRepositoryReader.class);
+      }
+      if (storageImpl.equals(Constants.Dataset.DATA_STORAGE_SQL)) {
+        return injector.getInstance(LocalArtifactRepositoryReader.class);
+      }
+      throw new UnsupportedOperationException(
+        String.format("%s is not a supported storage implementation, the supported implementations are %s and %s",
+                      storageImpl, Constants.Dataset.DATA_STORAGE_NOSQL, Constants.Dataset.DATA_STORAGE_SQL));
+    }
+  }
+
+  /**
+   * Provider for {@link PluginFinder}.
+   * Use {@link LocalPluginFinder} if storage implication is {@link Constants.Dataset#DATA_STORAGE_SQL}.
+   * Use {@link RemotePluginFinder} if storage implication is {@link Constants.Dataset#DATA_STORAGE_NOSQL}.
+   */
+  protected static final class PluginFinderProvider implements Provider<PluginFinder> {
+     private final CConfiguration cConf;
+    private final Injector injector;
+
+    @Inject
+    PluginFinderProvider(CConfiguration cConf, Injector injector) {
+      this.cConf = cConf;
+      this.injector = injector;
+    }
+
+    @Override
+    public PluginFinder get() {
+      String storageImpl = cConf.get(Constants.Dataset.DATA_STORAGE_IMPLEMENTATION);
+      if (storageImpl == null) {
+        throw new IllegalStateException("No storage implementation is specified in the configuration file");
+      }
+
+      storageImpl = storageImpl.toLowerCase();
+      if (storageImpl.equals(Constants.Dataset.DATA_STORAGE_NOSQL)) {
+        return injector.getInstance(RemotePluginFinder.class);
+      }
+      if (storageImpl.equals(Constants.Dataset.DATA_STORAGE_SQL)) {
+        return injector.getInstance(LocalPluginFinder.class);
+      }
+      throw new UnsupportedOperationException(
+        String.format("%s is not a supported storage implementation, the supported implementations are %s and %s",
+                      storageImpl, Constants.Dataset.DATA_STORAGE_NOSQL, Constants.Dataset.DATA_STORAGE_SQL));
+    }
+  }
+
 }

@@ -23,7 +23,6 @@ import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import com.google.inject.multibindings.MapBinder;
 import com.google.inject.name.Named;
-import com.google.inject.name.Names;
 import io.cdap.cdap.api.artifact.ArtifactManager;
 import io.cdap.cdap.app.runtime.ProgramRunner;
 import io.cdap.cdap.app.runtime.ProgramRunnerFactory;
@@ -33,11 +32,7 @@ import io.cdap.cdap.common.conf.Constants;
 import io.cdap.cdap.common.discovery.ResolvingDiscoverable;
 import io.cdap.cdap.internal.app.runtime.artifact.ArtifactFinder;
 import io.cdap.cdap.internal.app.runtime.artifact.ArtifactManagerFactory;
-import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepository;
-import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepositoryReader;
-import io.cdap.cdap.internal.app.runtime.artifact.DefaultArtifactRepository;
 import io.cdap.cdap.internal.app.runtime.artifact.LocalArtifactManager;
-import io.cdap.cdap.internal.app.runtime.artifact.LocalArtifactRepositoryReader;
 import io.cdap.cdap.internal.app.runtime.artifact.LocalPluginFinder;
 import io.cdap.cdap.internal.app.runtime.artifact.PluginFinder;
 import io.cdap.cdap.internal.app.runtime.batch.MapReduceProgramRunner;
@@ -77,9 +72,7 @@ final class InMemoryProgramRunnerModule extends PrivateModule {
               .build(ArtifactManagerFactory.class));
     expose(ArtifactManagerFactory.class);
 
-    bind(PluginFinder.class).to(LocalPluginFinder.class);
     bind(ArtifactFinder.class).to(LocalPluginFinder.class);
-    expose(PluginFinder.class);
     expose(ArtifactFinder.class);
 
     // Bind ProgramRunner
