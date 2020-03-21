@@ -23,6 +23,8 @@ import io.cdap.cdap.common.conf.SConfiguration;
 import io.cdap.cdap.common.security.KeyStores;
 import io.cdap.cdap.common.security.KeyStoresTest;
 import io.cdap.cdap.gateway.router.NettyRouter;
+import io.cdap.cdap.logging.gateway.handlers.ProgramRunRecordFetcher;
+import io.cdap.cdap.logging.gateway.handlers.RemoteProgramRunRecordFetcher;
 import org.apache.twill.common.Cancellable;
 import org.apache.twill.internal.zookeeper.InMemoryZKServer;
 import org.junit.AfterClass;
@@ -94,12 +96,17 @@ public class MasterServiceMainTestBase {
     cConf.setInt(Constants.Router.ROUTER_PORT, 0);
     cConf.setInt(Constants.Router.ROUTER_SSL_PORT, 0);
 
+    // Use remote fetcher for runtime server
+    cConf.setClass(Constants.RuntimeMonitor.RUN_RECORD_FETCHER_CLASS,
+                   RemoteProgramRunRecordFetcher.class, ProgramRunRecordFetcher.class);
+
     // Start the master main services
     serviceManagers.put(RouterServiceMain.class, runMain(cConf, sConf, RouterServiceMain.class));
     serviceManagers.put(MessagingServiceMain.class, runMain(cConf, sConf, MessagingServiceMain.class));
     serviceManagers.put(MetricsServiceMain.class, runMain(cConf, sConf, MetricsServiceMain.class));
     serviceManagers.put(LogsServiceMain.class, runMain(cConf, sConf, LogsServiceMain.class));
     serviceManagers.put(MetadataServiceMain.class, runMain(cConf, sConf, MetadataServiceMain.class));
+    serviceManagers.put(RuntimeServiceMain.class, runMain(cConf, sConf, RuntimeServiceMain.class));
     serviceManagers.put(AppFabricServiceMain.class, runMain(cConf, sConf, AppFabricServiceMain.class));
   }
 
