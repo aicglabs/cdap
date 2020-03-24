@@ -25,7 +25,7 @@ import BtnWithLoading from 'components/BtnWithLoading';
 import PipelineRunTimeArgsCounter from 'components/PipelineDetails/PipelineRuntimeArgsCounter';
 import { connect } from 'react-redux';
 import isEmpty from 'lodash/isEmpty';
-import { convertKeyValuePairsToMap } from 'services/helpers';
+import { convertKeyValuePairsToMap, preventPropagation } from 'services/helpers';
 import Popover from 'components/Popover';
 import T from 'i18n-react';
 require('./RuntimeArgsModeless.scss');
@@ -63,22 +63,26 @@ class RuntimeArgsModeless extends PureComponent {
     });
   };
 
-  saveRuntimeArgs = () => {
+  saveRuntimeArgs = async (e) => {
+    preventPropagation(e);
     this.toggleSaving();
-    updatePreferences().subscribe(
-      () => {
-        this.setState({
-          savedSuccessMessage: 'Runtime arguments saved successfully',
-          saving: false,
-        });
-      },
-      (err) => {
+    await updatePreferences()
+      .toPromise()
+      .then(() => {
+        this.setState(
+          {
+            savedSuccessMessage: 'Runtime arguments saved successfully',
+            saving: false,
+          },
+          this.props.onClose
+        );
+      })
+      .catch((err) => {
         this.setState({
           error: err.response || JSON.stringify(err),
           saving: false,
         });
-      }
-    );
+      });
   };
 
   saveRuntimeArgsAndRun = () => {
@@ -101,7 +105,6 @@ class RuntimeArgsModeless extends PureComponent {
           onClick={this.saveRuntimeArgs}
           disabled={this.state.saving || !isEmpty(this.state.savedSuccessMessage)}
           label="Save"
-          dataCy="save-runtimeargs-deployed-pipeline-modal-btn"
         />
       );
     };
@@ -129,10 +132,10 @@ class RuntimeArgsModeless extends PureComponent {
             <Popover target={RunBtn} showOn="Hover" placement="right">
               {T.translate(`${I18N_PREFIX}.runBtnPopover`)}
             </Popover>
-            {!isEmpty(this.state.savedSuccessMessage) ? (
-              <span className="text-success">{this.state.savedSuccessMessage}</span>
-            ) : null}
           </div>
+          {!isEmpty(this.state.savedSuccessMessage) ? (
+            <span className="text-success">{this.state.savedSuccessMessage}</span>
+          ) : null}
           <PipelineRunTimeArgsCounter />
         </div>
       </div>

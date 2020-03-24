@@ -410,4 +410,19 @@ describe('Deploying pipeline with saved runtime arguments', () => {
     cy.get(dataCy('pipeline-run-btn')).click();
     cy.get(dataCy('Succeeded'), { timeout: PIPELINE_RUN_TIMEOUT }).should('exist');
   });
+
+  it('should have saved runtime arguments available',()=>{
+    //Verifying values are persisted
+    cy.get('.arrow-btn-container').click();
+    cy.get(
+      `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(0)} ${dataCy(
+        RUNTIME_ARGS_VALUE_SELECTOR
+      )} input`
+    ).should('have.value', SOURCE_PATH_VAL);
+    cy.get(
+      `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(1)} ${dataCy(
+        RUNTIME_ARGS_VALUE_SELECTOR
+      )} input`
+    ).should('have.value', SINK_PATH_VAL);
+  })
 });
