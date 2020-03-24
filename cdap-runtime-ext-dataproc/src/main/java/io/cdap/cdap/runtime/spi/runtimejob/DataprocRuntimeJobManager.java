@@ -41,6 +41,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.ByteStreams;
 import com.google.gson.Gson;
 import io.cdap.cdap.runtime.spi.common.DataprocUtils;
 import org.apache.twill.filesystem.LocalLocationFactory;
@@ -49,9 +50,11 @@ import org.apache.twill.filesystem.LocationFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -254,12 +257,25 @@ public class DataprocRuntimeJobManager implements RuntimeJobManager {
   /**
    * Uploads files to gcs.
    */
-  private void uploadFile(String path, RuntimeLocalFile localFile) throws IOException, StorageException {
-    File file = new File(localFile.getFileUri());
-    BlobId blobId = BlobId.of(bucket, path);
+  private void uploadFile(String targetFilePath, RuntimeLocalFile localFile) throws IOException, StorageException {
+    BlobId blobId = BlobId.of(bucket, targetFilePath);
     BlobInfo blobInfo = BlobInfo.newBuilder(blobId).setContentType("application/octet-stream").build();
-    try (WriteChannel writer = storageClient.writer(blobInfo)) {
-      Files.copy(file.toPath(), Channels.newOutputStream(writer));
+
+    if (localFile.getFileUri().getScheme().startsWith("file")) {
+      try (InputStream inputStream = localFile.getFileUri().toURL().openStream()) {
+        try (WriteChannel writer = storageClient.writer(blobInfo)) {
+          ByteStreams.copy(inputStream, Channels.newOutputStream(writer));
+        }
+      }
+    } else {
+      BlobId sourceBlobId = BlobId.of(localFile.getFileUri().getAuthority(),
+                                      localFile.getFileUri().getPath().substring(1));
+      Storage client = StorageOptions.getDefaultInstance().getService();
+      try (InputStream inputStream = new ByteArrayInputStream(client.get(sourceBlobId).getContent())) {
+        try (WriteChannel writer = storageClient.writer(blobInfo)) {
+          ByteStreams.copy(inputStream, Channels.newOutputStream(writer));
+        }
+      }
     }
   }
 

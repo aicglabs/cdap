@@ -16,6 +16,7 @@
 
 package io.cdap.cdap.internal.app.runtime.distributed.runtimejob;
 
+import io.cdap.cdap.proto.id.ProgramRunId;
 import io.cdap.cdap.runtime.spi.runtimejob.ProgramRunInfo;
 import io.cdap.cdap.runtime.spi.runtimejob.RuntimeJobInfo;
 import io.cdap.cdap.runtime.spi.runtimejob.RuntimeLocalFile;
@@ -25,15 +26,25 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * Default implementation of {@link RuntimeLocalFile}.
+ * Default implementation of {@link RuntimeJobInfo}.
  */
 public class DefaultRuntimeInfo implements RuntimeJobInfo {
-  private final Collection<? extends RuntimeLocalFile> files;
   private final ProgramRunInfo info;
+  private final Collection<? extends RuntimeLocalFile> files;
 
-  DefaultRuntimeInfo(Collection<? extends RuntimeLocalFile> files, ProgramRunInfo info) {
+  DefaultRuntimeInfo(ProgramRunId programRunId, Collection<? extends RuntimeLocalFile> files) {
+    this.info = new ProgramRunInfo.Builder()
+      .setNamespace(programRunId.getNamespace())
+      .setApplication(programRunId.getApplication())
+      .setProgram(programRunId.getProgram())
+      .setProgramType(programRunId.getType().getPrettyName())
+      .setRun(programRunId.getRun()).build();
     this.files = Collections.unmodifiableCollection(new ArrayList<>(files));
-    this.info = info;
+  }
+
+  @Override
+  public ProgramRunInfo getProgramRunInfo() {
+    return info;
   }
 
   @Override
@@ -44,10 +55,5 @@ public class DefaultRuntimeInfo implements RuntimeJobInfo {
   @Override
   public String getRuntimeJobClassname() {
     return DefaultRuntimeJob.class.getName();
-  }
-
-  @Override
-  public ProgramRunInfo getProgramRunInfo() {
-    return info;
   }
 }

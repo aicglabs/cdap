@@ -74,10 +74,10 @@ class RuntimeJobTwillController implements TwillController {
 
   void start(CompletableFuture<Void> startupTaskCompletion) {
     startupTaskCompletion.whenComplete((res, throwable) -> {
-      // terminate this controller with fail state
       if (throwable == null) {
         started.complete(this);
       } else {
+        // terminate this controller with fail state
         completion.completeExceptionally(throwable);
       }
     });
@@ -202,10 +202,21 @@ class RuntimeJobTwillController implements TwillController {
 
   @Override
   public void kill() {
-    try {
-      terminate().get();
-    } catch (InterruptedException | ExecutionException e) {
-      throw Throwables.propagate(e);
+    if (terminateCalled.compareAndSet(false, true)) {
+      try {
+        // stop the job
+        jobManager.kill(new ProgramRunInfo.Builder()
+                          .setNamespace(programRunId.getNamespace())
+                          .setApplication(programRunId.getApplication())
+                          .setProgram(programRunId.getProgram())
+                          .setProgramType(programRunId.getType().getPrettyName())
+                          .setRun(programRunId.getRun()).build());
+        // mark completion as completed
+        completion.complete(this);
+      } catch (Exception e) {
+        completion.completeExceptionally(e);
+        throw Throwables.propagate(e);
+      }
     }
   }
 

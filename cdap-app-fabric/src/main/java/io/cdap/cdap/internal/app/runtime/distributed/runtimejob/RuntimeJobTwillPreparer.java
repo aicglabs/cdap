@@ -383,7 +383,7 @@ public class RuntimeJobTwillPreparer implements TwillPreparer {
 
         throwIfTimeout(startTime, timeout, timeoutUnit);
 
-        DefaultRuntimeInfo defaultRuntimeInfo = getRuntimeJobInfo(localFiles, runtimeSpec);
+        DefaultRuntimeInfo defaultRuntimeInfo = getRuntimeJobInfo(runtimeSpec, localFiles);
         LOG.info("Starting runnable {} for runId {} with job manager.", runtimeSpec.getName(), programRunId);
         // launch job using job manager
         jobManager.launch(defaultRuntimeInfo);
@@ -635,26 +635,15 @@ public class RuntimeJobTwillPreparer implements TwillPreparer {
     ArgumentsCodec.encode(arguments, () -> Files.newBufferedWriter(targetPath, StandardCharsets.UTF_8));
   }
 
-  private DefaultRuntimeInfo getRuntimeJobInfo(Map<String, LocalFile> localFiles, RuntimeSpecification runtimeSpec) {
+  private DefaultRuntimeInfo getRuntimeJobInfo(RuntimeSpecification runtimeSpec, Map<String, LocalFile> localFiles) {
     List<LocalFile> launcherFiles = new ArrayList<>();
-
     for (LocalFile file : Iterables.concat(localFiles.values(), runtimeSpec.getLocalFiles())) {
-      if (file.getName().equals("artifacts")) {
-        continue;
-      }
       launcherFiles.add(file);
     }
 
-    return new DefaultRuntimeInfo(
-      launcherFiles.stream()
-        .map(file -> new RuntimeLocalFile(file.getName(), file.getURI(), file.isArchive()))
-        .collect(Collectors.toList()),
-      new ProgramRunInfo.Builder()
-        .setNamespace(programRunId.getNamespace())
-        .setApplication(programRunId.getApplication())
-        .setProgram(programRunId.getProgram())
-        .setProgramType(programRunId.getType().getPrettyName())
-        .setRun(programRunId.getRun()).build());
+    return new DefaultRuntimeInfo(programRunId, launcherFiles.stream()
+      .map(file -> new RuntimeLocalFile(file.getName(), file.getURI(), file.isArchive()))
+      .collect(Collectors.toList()));
   }
 
   /**

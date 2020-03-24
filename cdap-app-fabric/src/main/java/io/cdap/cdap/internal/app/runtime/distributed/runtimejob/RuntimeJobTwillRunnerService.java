@@ -110,7 +110,6 @@ public class RuntimeJobTwillRunnerService implements TwillRunnerService {
     this.controllersLock = new ReentrantLock();
     this.provisioningService = provisioningService;
     this.programStateWriter = programStateWriter;
-
   }
 
   @Override

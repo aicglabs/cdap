@@ -510,7 +510,7 @@ public abstract class DistributedProgramRunner implements ProgramRunner, Program
     File archiveFile;
 
     if (systemArgs.hasOption(ProgramOptionConstants.PLUGIN_ARCHIVE)) {
-      archiveFile = new File(artifactArchiveJarName);
+      archiveFile = new File(systemArgs.getOption(ProgramOptionConstants.PLUGIN_ARCHIVE));
       // Localize plugins to two files, one expanded into a directory, one not.
       localizeResources.put(artifactDirName, new LocalizeResource(archiveFile, true));
       localizeResources.put(artifactArchiveJarName, new LocalizeResource(archiveFile, false));

@@ -114,16 +114,12 @@ public class DataprocJobMain {
     }
   }
 
-  private static void unArchiveJars() {
+  private static void unArchiveJars() throws Exception {
     try (Reader reader = new BufferedReader(new FileReader(new File(ARCHIVE_FILES_JSON)))) {
       List<String> files = GSON.fromJson(reader, LIST_TYPE);
       for (String fileName : files) {
         unpack(fileName, fileName);
       }
-    } catch (Exception e) {
-      throw new IllegalArgumentException(
-        String.format("Unable to read %s file. It should be a valid json containing " +
-                        "list of archive files", ARCHIVE_FILES_JSON), e);
     }
   }
 
@@ -180,6 +176,9 @@ public class DataprocJobMain {
 
   private static void unpack(String archiveFileName, String targetDirName) throws IOException {
     String extension = getFileExtension(archiveFileName);
+    if (extension.isEmpty()) {
+      return;
+    }
     switch (extension) {
       case "zip":
       case "jar":
@@ -219,6 +218,9 @@ public class DataprocJobMain {
 
   private static String getFileExtension(String archiveFileName) {
     int dotIndex = archiveFileName.lastIndexOf('.');
+    if (dotIndex == -1) {
+      return "";
+    }
     return archiveFileName.substring(dotIndex + 1);
   }
 }
