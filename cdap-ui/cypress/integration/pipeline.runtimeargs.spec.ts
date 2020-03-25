@@ -407,7 +407,9 @@ describe('Deploying pipeline with saved runtime arguments', () => {
       )}`
     ).type(SINK_PATH_VAL);
     cy.get(dataCy('save-runtime-args-btn')).click();
-    cy.get(dataCy('pipeline-run-btn')).click();
+    cy.get(dataCy('save-runtime-args-btn')).should('not.be.visible');
+      cy.get(dataCy("pipeline-run-btn")).should('be.visible');
+    cy.get(dataCy('pipeline-run-btn')).click({force:true});
     cy.get(dataCy('Succeeded'), { timeout: PIPELINE_RUN_TIMEOUT }).should('exist');
   });
 
