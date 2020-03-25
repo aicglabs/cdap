@@ -64,6 +64,10 @@ export default class PipelineRuntimeArgsDropdownBtn extends Component {
     );
   };
 
+  async componentWillMount() {
+    await fetchAndUpdateRuntimeArgs().toPromise();
+  }
+
   componentWillReceiveProps = (nextProps) => {
     if (nextProps.showRunOptions !== this.state.showRunOptions) {
       this.setState({

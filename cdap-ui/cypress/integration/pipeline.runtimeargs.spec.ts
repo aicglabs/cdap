@@ -339,7 +339,7 @@ describe('Deploying pipeline with saved runtime arguments', () => {
     getArtifactsPoll(headers);
   });
   after(() => {
-    // cy.cleanup_pipelines(headers, runtimeArgsPipeline);
+    cy.cleanup_pipelines(headers, runtimeArgsPipeline);
   });
 
   it('should be successful', () => {
