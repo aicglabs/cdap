@@ -37,6 +37,8 @@ describe('Generating and navigating field level lineage for datasets', () => {
     Helpers.deployAndTestPipeline('fll_wrangler-test-pipeline.json', fllPipeline, () => {
       // Update and save runtime arguments
       cy.get('.arrow-btn-container').click();
+      cy.get(dataCy("runtime-args-modeless")).should('exist');
+      cy.get(dataCy("runtime-args-modeless-loading")).should('not.exist');
       cy.get(
         `${dataCy('runtimeargs-deployed')} ${dataCy(0)} ${dataCy('runtimeargs-value')}`
       ).should('exist');

@@ -21,6 +21,7 @@ let headers = {};
 const PIPELINE_RUN_TIMEOUT = 360000;
 const RUNTIME_ARGS_PREVIEW_SELECTOR = 'runtimeargs-preview';
 const RUNTIME_ARGS_DEPLOYED_SELECTOR = 'runtimeargs-deployed';
+const RUNTIME_ARGS_MODELESS_LOADING_SELECTOR = 'runtime-args-modeless-loading';
 const RUNTIME_ARGS_KEY_SELECTOR = 'runtimeargs-key';
 const RUNTIME_ARGS_VALUE_SELECTOR = 'runtimeargs-value';
 const PREVIEW_FAILED_BANNER_MSG =
@@ -234,6 +235,7 @@ describe('Deploying pipeline with temporary runtime arguments', () => {
 
   it('and running it should succeed.', () => {
     cy.get('.arrow-btn-container').click();
+    cy.get(dataCy(RUNTIME_ARGS_MODELESS_LOADING_SELECTOR)).should('not.exist');
     cy.get(dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)).should('exist');
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(0)} ${dataCy(
@@ -364,6 +366,7 @@ describe('Deploying pipeline with saved runtime arguments', () => {
 
   it('and running it should succeed.', () => {
     cy.get('.arrow-btn-container').click();
+    cy.get(dataCy(RUNTIME_ARGS_MODELESS_LOADING_SELECTOR)).should('not.exist');
     cy.get(dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)).should('exist');
     cy.get(
       `${dataCy(RUNTIME_ARGS_DEPLOYED_SELECTOR)} ${dataCy(0)} ${dataCy(

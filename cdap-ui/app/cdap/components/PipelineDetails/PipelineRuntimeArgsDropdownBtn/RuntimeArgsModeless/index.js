@@ -20,6 +20,7 @@ import RuntimeArgsTabContent from 'components/PipelineDetails/PipelineRuntimeArg
 import {
   updatePreferences,
   runPipeline,
+  fetchAndUpdateRuntimeArgs,
 } from 'components/PipelineConfigurations/Store/ActionCreator';
 import BtnWithLoading from 'components/BtnWithLoading';
 import PipelineRunTimeArgsCounter from 'components/PipelineDetails/PipelineRuntimeArgsCounter';
@@ -28,6 +29,8 @@ import isEmpty from 'lodash/isEmpty';
 import { convertKeyValuePairsToMap, preventPropagation } from 'services/helpers';
 import Popover from 'components/Popover';
 import T from 'i18n-react';
+import If from 'components/If';
+import LoadingSVGCentered from 'components/LoadingSVGCentered';
 require('./RuntimeArgsModeless.scss');
 
 const I18N_PREFIX =
@@ -43,6 +46,7 @@ class RuntimeArgsModeless extends PureComponent {
     savedSuccessMessage: null,
     savingAndRun: false,
     error: null,
+    initialPropsLoading: true,
   };
 
   componentWillReceiveProps() {
@@ -66,6 +70,8 @@ class RuntimeArgsModeless extends PureComponent {
   saveRuntimeArgs = async (e) => {
     preventPropagation(e);
     this.toggleSaving();
+    // Making this function synchronus so that we wait for the arguments
+    // to be saved before the modeless is closed.
     await updatePreferences()
       .toPromise()
       .then(() => {
@@ -95,6 +101,12 @@ class RuntimeArgsModeless extends PureComponent {
     this.props.onClose();
   };
 
+  componentDidMount() {
+    fetchAndUpdateRuntimeArgs().subscribe(() => {
+      this.setState({ initialPropsLoading: false });
+    });
+  }
+
   render() {
     const SaveBtn = () => {
       return (
@@ -121,23 +133,30 @@ class RuntimeArgsModeless extends PureComponent {
       );
     };
     return (
-      <div className="runtime-args-modeless">
-        <div className="arguments-label">{T.translate(`${I18N_PREFIX}.specifyArgs`)}</div>
-        <RuntimeArgsTabContent />
-        <div className="tab-footer">
-          <div className="btns-container">
-            <Popover target={SaveBtn} placement="left" showOn="Hover">
-              {T.translate(`${I18N_PREFIX}.saveBtnPopover`)}
-            </Popover>
-            <Popover target={RunBtn} showOn="Hover" placement="right">
-              {T.translate(`${I18N_PREFIX}.runBtnPopover`)}
-            </Popover>
+      <div className="runtime-args-modeless" data-cy="runtime-args-modeless">
+        <If condition={this.state.initialPropsLoading}>
+          <div className="loading">
+            <LoadingSVGCentered data-cy="runtime-args-modeless-loading" />
           </div>
-          {!isEmpty(this.state.savedSuccessMessage) ? (
-            <span className="text-success">{this.state.savedSuccessMessage}</span>
-          ) : null}
-          <PipelineRunTimeArgsCounter />
-        </div>
+        </If>
+        <If condition={!this.state.initialPropsLoading}>
+          <div className="arguments-label">{T.translate(`${I18N_PREFIX}.specifyArgs`)}</div>
+          <RuntimeArgsTabContent runtimeArgs={this.props.runtimeArgs} />
+          <div className="tab-footer">
+            <div className="btns-container">
+              <Popover target={SaveBtn} placement="left" showOn="Hover">
+                {T.translate(`${I18N_PREFIX}.saveBtnPopover`)}
+              </Popover>
+              <Popover target={RunBtn} showOn="Hover" placement="right">
+                {T.translate(`${I18N_PREFIX}.runBtnPopover`)}
+              </Popover>
+            </div>
+            {!isEmpty(this.state.savedSuccessMessage) ? (
+              <span className="text-success">{this.state.savedSuccessMessage}</span>
+            ) : null}
+            <PipelineRunTimeArgsCounter />
+          </div>
+        </If>
       </div>
     );
   }
