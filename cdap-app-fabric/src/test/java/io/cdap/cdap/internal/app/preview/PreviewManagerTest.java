@@ -52,7 +52,6 @@ import io.cdap.cdap.data.runtime.DataSetsModules;
 import io.cdap.cdap.data.runtime.TransactionExecutorModule;
 import io.cdap.cdap.explore.guice.ExploreClientModule;
 import io.cdap.cdap.internal.app.runtime.ProgramRuntimeProviderLoader;
-import io.cdap.cdap.internal.app.runtime.artifact.ArtifactRepository;
 import io.cdap.cdap.internal.app.runtime.artifact.ArtifactStore;
 import io.cdap.cdap.internal.app.store.RunRecordDetail;
 import io.cdap.cdap.internal.provision.ProvisionerModule;
@@ -61,6 +60,7 @@ import io.cdap.cdap.logging.guice.LogReaderRuntimeModules;
 import io.cdap.cdap.messaging.guice.MessagingServerRuntimeModule;
 import io.cdap.cdap.metadata.MetadataReaderWriterModules;
 import io.cdap.cdap.metadata.MetadataServiceModule;
+import io.cdap.cdap.metadata.PreferencesFetcher;
 import io.cdap.cdap.metrics.guice.MetricsClientRuntimeModule;
 import io.cdap.cdap.metrics.query.MetricsQueryHelper;
 import io.cdap.cdap.proto.ProgramType;
@@ -204,13 +204,16 @@ public class PreviewManagerTest {
   private static final class MockPreviewRunnerModule extends DefaultPreviewRunnerModule {
 
     @Inject
-    MockPreviewRunnerModule(ArtifactRepository artifactRepository, ArtifactStore artifactStore,
+    MockPreviewRunnerModule(ArtifactRepositoryReaderProvider readerProvider, ArtifactStore artifactStore,
                             AuthorizerInstantiator authorizerInstantiator, AuthorizationEnforcer authorizationEnforcer,
                             PrivilegesManager privilegesManager, PreferencesService preferencesService,
                             ProgramRuntimeProviderLoader programRuntimeProviderLoader,
+                            PluginFinderProvider pluginFinderProvider,
+                            PreferencesFetcherProvider preferencesFetcherProvider,
                             @Assisted PreviewRequest previewRequest) {
-      super(artifactRepository, artifactStore, authorizerInstantiator, authorizationEnforcer,
-            privilegesManager, preferencesService, programRuntimeProviderLoader, previewRequest);
+      super(readerProvider, artifactStore, authorizerInstantiator, authorizationEnforcer,
+            privilegesManager, preferencesService, programRuntimeProviderLoader, pluginFinderProvider,
+            preferencesFetcherProvider, previewRequest);
     }
 
     @Override
