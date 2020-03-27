@@ -479,7 +479,9 @@ public class ApplicationLifecycleService extends AbstractIdleService {
                                             ArtifactVersionRange.parse(summary.getVersion()));
     // this method will not throw ArtifactNotFoundException, if no artifacts in the range, we are expecting an empty
     // collection returned.
+    LOG.debug("wyzhang: ApplicationLifecycleService::deployApp " + artifactRepository)
     List<ArtifactDetail> artifactDetail = artifactRepository.getArtifactDetails(range, 1, ArtifactSortOrder.DESC);
+    LOG.debug("wyzhang: ApplicationLifecycleService::deployApp getArtifactDetails returns {}", artifactDetail.size());
     if (artifactDetail.isEmpty()) {
       throw new ArtifactNotFoundException(range.getNamespace(), range.getName());
     }

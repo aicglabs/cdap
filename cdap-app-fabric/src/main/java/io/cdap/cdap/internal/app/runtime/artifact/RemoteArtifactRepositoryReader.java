@@ -37,6 +37,8 @@ import io.cdap.common.http.HttpResponse;
 import org.apache.twill.discovery.DiscoveryServiceClient;
 import org.apache.twill.filesystem.Location;
 import org.apache.twill.filesystem.LocationFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sun.net.www.protocol.http.HttpURLConnection;
 
 import java.io.IOException;
@@ -49,6 +51,8 @@ import java.util.List;
  * Implementation for fetching artifact metadata from remote {@link ArtifactHttpHandlerInternal}
  */
 public class RemoteArtifactRepositoryReader implements ArtifactRepositoryReader {
+   private static final Logger LOG = LoggerFactory.getLogger(RemoteArtifactRepositoryReader.class);
+
   private static final Gson GSON = new GsonBuilder()
     .registerTypeAdapter(Schema.class, new SchemaTypeAdapter())
     .create();
@@ -70,6 +74,7 @@ public class RemoteArtifactRepositoryReader implements ArtifactRepositoryReader 
   @Override
   public ArtifactDetail getArtifact(Id.Artifact artifactId) throws Exception {
     HttpResponse httpResponse;
+    LOG.debug("wyzhang: RemoteArtifactRepositoryReader::getArtifact() start");
     String url = String.format("namespaces/%s/artifacts/%s/versions/%s",
                                artifactId.getNamespace().getId(),
                                artifactId.getName(),
@@ -77,6 +82,8 @@ public class RemoteArtifactRepositoryReader implements ArtifactRepositoryReader 
     HttpRequest.Builder requestBuilder = remoteClient.requestBuilder(HttpMethod.GET, url);
     httpResponse = execute(requestBuilder.build());
     ArtifactDetail detail = GSON.fromJson(httpResponse.getResponseBodyAsString(), ARTIFACT_DETAIL_TYPE);
+    LOG.debug("wyzhang: RemoteArtifactRepositoryReader::getArtifact() uri = " + detail.getDescriptor().getLocationURI());
+    LOG.debug("wyzhang: RemoteArtifactRepositoryReader::getArtifact() location factory is " + locationFactory.getClass().getName());
     Location artifactLocation =
       Locations.getLocationFromAbsolutePath(locationFactory, detail.getDescriptor().getLocationURI().getPath());
     ArtifactDetail artifactDetail =
@@ -88,6 +95,7 @@ public class RemoteArtifactRepositoryReader implements ArtifactRepositoryReader 
   @Override
   public List<ArtifactDetail> getArtifactDetails(ArtifactRange range, int limit, ArtifactSortOrder order)
     throws Exception {
+    LOG.debug("wyzhang: RemoteArtifactRepositoryReader::getArtifactDetails() start");
     String url = String.format("namespaces/%s/artifacts/%s/versions?lower=%s&upper=%s&limit=%s&order=%s",
                                range.getNamespace(),
                                range.getName(),

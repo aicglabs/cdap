@@ -30,6 +30,8 @@ import io.cdap.cdap.proto.PreferencesDetail;
 import io.cdap.cdap.security.impersonation.ImpersonationInfo;
 import io.cdap.cdap.security.impersonation.OwnerAdmin;
 import io.cdap.cdap.security.impersonation.SecurityUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -39,10 +41,12 @@ import java.util.Map;
  * Used to provide default user and system properties that can be used while starting a Program.
  */
 public class PropertiesResolver {
+  private static final Logger LOG = LoggerFactory.getLogger(PropertiesResolver.class);
   private final PreferencesFetcher preferencesFetcher;
   private final CConfiguration cConf;
   private final OwnerAdmin ownerAdmin;
   private final SchedulerQueueResolver queueResolver;
+
 
   @Inject
   PropertiesResolver(PreferencesFetcher preferencesFetcher, CConfiguration cConf,
@@ -55,6 +59,8 @@ public class PropertiesResolver {
   }
 
   public Map<String, String> getUserProperties(Id.Program id) throws IOException, NotFoundException {
+    LOG.debug("wyzhang: PropertiesResolver::getUserProperties start");
+    LOG.debug("wyzhang: PropertiesResolver::getUserProperties fetcher is: " + preferencesFetcher.getClass().getName());
     PreferencesDetail preferencesDetail = null;
     preferencesDetail = preferencesFetcher.get(id.toEntityId(), true);
     Map<String, String> userArgs = new HashMap<String, String>(preferencesDetail.getProperties());

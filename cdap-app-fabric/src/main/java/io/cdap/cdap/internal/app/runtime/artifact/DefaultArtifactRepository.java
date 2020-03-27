@@ -174,12 +174,16 @@ public class DefaultArtifactRepository implements ArtifactRepository {
 
   @Override
   public ArtifactDetail getArtifact(Id.Artifact artifactId) throws Exception {
+    LOG.debug("wyzhang: DefaultArtifactRepsotiry::getArtifact start");
+    LOG.debug("wyzhang: DefaultArtifactRepsotiry::getArtifact reader is: " + artifactRepositoryReader.getClass().getName());
     return artifactRepositoryReader.getArtifact(artifactId);
   }
 
   @Override
   public List<ArtifactDetail> getArtifactDetails(final ArtifactRange range, int limit,
                                                  ArtifactSortOrder order) throws Exception {
+    LOG.debug("wyzhang: DefaultArtifactRepsotiry::getArtifactDetails start");
+    LOG.debug("wyzhang: DefaultArtifactRepsotiry::getArtifactDetails reader is: " + artifactRepositoryReader.getClass().getName());
     return artifactRepositoryReader.getArtifactDetails(range, limit, order);
   }
 
