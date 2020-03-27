@@ -142,6 +142,7 @@ public class DefaultArtifactRepository implements ArtifactRepository {
   @Override
   public void clear(NamespaceId namespace) throws Exception {
     for (ArtifactDetail artifactDetail : artifactStore.getArtifacts(namespace)) {
+      LOG.debug("wyzhang: get artifact to delete " + artifactDetail.getDescriptor().getArtifactId().getVersion());
       deleteArtifact(Id.Artifact.from(Id.Namespace.fromEntityId(namespace),
                                       artifactDetail.getDescriptor().getArtifactId()));
     }
@@ -180,7 +181,7 @@ public class DefaultArtifactRepository implements ArtifactRepository {
   @Override
   public List<ArtifactDetail> getArtifactDetails(final ArtifactRange range, int limit,
                                                  ArtifactSortOrder order) throws Exception {
-    return artifactStore.getArtifacts(range, limit, order);
+    return artifactRepositoryReader.getArtifactDetails(range, limit, order);
   }
 
   @Override
@@ -453,12 +454,15 @@ public class DefaultArtifactRepository implements ArtifactRepository {
   public void deleteArtifact(Id.Artifact artifactId) throws Exception {
     // delete the artifact first and then privileges. Not the other way to avoid orphan artifact
     // which does not have any privilege if the artifact delete from store fails. see CDAP-6648
+    LOG.debug("wyzhang: delete artiact store: " + artifactStore);
+    LOG.debug("wyzhang: delete artiact id: " + artifactId.toString());
     artifactStore.delete(artifactId);
     metadataServiceClient.drop(new MetadataMutation.Drop(artifactId.toEntityId().toMetadataEntity()));
   }
 
   @Override
   public List<ArtifactInfo> getArtifactsInfo(NamespaceId namespace) throws Exception {
+    LOG.debug("wyzhang: getArtifactInfo: " + artifactStore);
     final List<ArtifactDetail> artifactDetails = artifactStore.getArtifacts(namespace);
 
     return Lists.transform(artifactDetails, new Function<ArtifactDetail, ArtifactInfo>() {
